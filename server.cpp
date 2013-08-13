@@ -9,6 +9,8 @@
 #include <ocl/TaskBrowser.hpp>
 #include <rtt/os/main.h>
 
+#include <kdl/jntarray.hpp>
+
 using namespace RTT::corba;
 using namespace RTT;
 
@@ -16,11 +18,15 @@ class Source : public RTT::TaskContext {
 public:
   Source(std::string name) : RTT::TaskContext(name) {
     this->ports()->addPort("test",port_test);
+    this->ports()->addPort("test2",port_test2);
+    this->ports()->addPort("jnt",port_jnt);
     this->provides("sub1")->addPort("test1",sub_port_test);
     this->provides("sub1")->provides("sub2")->addPort("test12",sub_sub_port_test);
   }
   
+  RTT::OutputPort<KDL::JntArray> port_jnt;
   RTT::OutputPort<double> port_test;
+  RTT::OutputPort<double> port_test2;
   RTT::OutputPort<double> sub_port_test;
   RTT::OutputPort<double> sub_sub_port_test;
 };
@@ -29,11 +35,15 @@ class Sink : public RTT::TaskContext {
 public:
   Sink(std::string name) : RTT::TaskContext(name) {
     this->ports()->addPort("test",port_test);
+    this->ports()->addPort("test2",port_test2);
+    this->ports()->addPort("jnt",port_jnt);
     this->provides("sub1")->addPort("test1",sub_port_test);
     this->provides("sub1")->provides("sub2")->addPort("test12",sub_sub_port_test);
   }
   
+  RTT::InputPort<KDL::JntArray> port_jnt;
   RTT::InputPort<double> port_test;
+  RTT::InputPort<double> port_test2;
   RTT::InputPort<double> sub_port_test;
   RTT::InputPort<double> sub_sub_port_test;
 };
@@ -50,14 +60,17 @@ int ORO_main(int argc, char** argv)
   RTT::corba::TaskContextServer::ThreadOrb();
 
   // Create the components
-  RTT_COMPONENT_PATH = std::string(getenv("RTT_COMPONENT_PATH"));
-  RTT::log(RTT::Error) << "RTT_COMPONENT_PATH: " << RTT_COMPONENT_PATH <<std::endl;
+  //RTT_COMPONENT_PATH = std::string(getenv("RTT_COMPONENT_PATH"));
+  //RTT::log(RTT::Error) << "RTT_COMPONENT_PATH: " << RTT_COMPONENT_PATH <<std::endl;
 
   Source source("source"); 
   Sink sink("sink"); 
   OCL::DeploymentComponent server_deployer("server_deployer");
   server_deployer.addPeer(&source);
   server_deployer.addPeer(&sink);
+
+  // Need to import the typekit on the server
+  server_deployer.import("kdl_typekit");
 
   // Attach the taskcontext server to this component
   RTT::corba::TaskContextServer::Create( &server_deployer );
